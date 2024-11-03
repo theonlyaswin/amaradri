@@ -1,5 +1,5 @@
 import { atom, useAtom } from "jotai";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 const pictures = [
   "DSC00680",
@@ -41,45 +41,63 @@ pages.push({
 
 export const UI = () => {
   const [page, setPage] = useAtom(pageAtom);
+  const touchStartRef = useRef(null);
 
   useEffect(() => {
     const audio = new Audio("/audios/page-flip-01a.mp3");
     audio.play();
   }, [page]);
 
+  useEffect(() => {
+    const handleScroll = (event) => {
+      if (event.deltaY > 0) {
+        // Scroll down
+        setPage((prev) => Math.min(prev + 1, pages.length - 1));
+      } else if (event.deltaY < 0) {
+        // Scroll up
+        setPage((prev) => Math.max(prev - 1, 0));
+      }
+    };
+
+    const handleTouchStart = (event) => {
+      touchStartRef.current = event.touches[0].clientY; // Store the initial touch position
+    };
+
+    const handleTouchMove = (event) => {
+      if (touchStartRef.current !== null) {
+        const touchEndY = event.touches[0].clientY;
+        const touchDiff = touchStartRef.current - touchEndY;
+
+        if (touchDiff > 30) {
+          // Swipe down
+          setPage((prev) => Math.min(prev + 1, pages.length - 1));
+          touchStartRef.current = null; // Reset after swipe
+        } else if (touchDiff < -30) {
+          // Swipe up
+          setPage((prev) => Math.max(prev - 1, 0));
+          touchStartRef.current = null; // Reset after swipe
+        }
+      }
+    };
+
+    window.addEventListener("wheel", handleScroll);
+    window.addEventListener("touchstart", handleTouchStart);
+    window.addEventListener("touchmove", handleTouchMove);
+
+    return () => {
+      window.removeEventListener("wheel", handleScroll);
+      window.removeEventListener("touchstart", handleTouchStart);
+      window.removeEventListener("touchmove", handleTouchMove);
+    };
+  }, [setPage]);
+
   return (
     <>
-      <main className=" pointer-events-none select-none z-10 fixed  inset-0  flex justify-between flex-col">
-
+      <main className="pointer-events-none select-none z-10 fixed inset-0 flex justify-between flex-col">
         <div className="w-full pointer-events-auto flex justify-center">
-          <div className="flex items-center gap-4 max-w-full p-10 flex-wrap">
-            {[...pages].map((_, index) => (
-              <button
-                key={index}
-                className={`border-transparent hover:border-white transition-all duration-300  px-4 py-3 rounded-full  text-lg uppercase shrink-0 border ${
-                  index === page
-                    ? "bg-white/90 text-black"
-                    : "bg-black/30 text-white"
-                }`}
-                onClick={() => setPage(index)}
-              >
-                {index === 0 ? "Cover" : `Page ${index}`}
-              </button>
-            ))}
-            <button
-              className={`border-transparent hover:border-white transition-all duration-300  px-4 py-3 rounded-full  text-lg uppercase shrink-0 border ${
-                page === pages.length
-                  ? "bg-white/90 text-black"
-                  : "bg-black/30 text-white"
-              }`}
-              onClick={() => setPage(pages.length)}
-            >
-              Back Cover
-            </button>
-          </div>
+
         </div>
       </main>
-
     </>
   );
 };

@@ -9,6 +9,10 @@
   background: radial-gradient(#F8F5F0, #ffd894 80%);
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
 }
